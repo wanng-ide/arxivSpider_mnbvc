@@ -13,6 +13,7 @@ def crawl(url, headers=None):
     for i in range(retry_times):
         if resp.status_code == 200: break
         resp = requests.get(url, timeout=30)
+    # time.sleep(2)   # 如果爬太快被反爬，就把这一行的注释去掉
     return resp
 
 def download_files(j, out_folder=None):
