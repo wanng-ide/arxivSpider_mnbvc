@@ -77,7 +77,7 @@ def download_files(j, out_folder=None):
     done_set.add(pid)
 
 def worker(obj):
-    global t_counter
+    # global t_counter
     try:
         download_files(obj)
     except ConnectionResetError:
@@ -92,12 +92,12 @@ def worker(obj):
         # TODO: 异常处理
         print(obj['id'], 'err3--------------------------------------')
         logging.error(f"other exception: {obj['id']}\n\t{e}\n\t{traceback.format_exc()}")
-    finally:
-        t_counter -= 1
+    # finally:
+    #     t_counter -= 1
 
 def main():
-    global t_counter
-    t_counter = 0
+    # global t_counter
+    # t_counter = 0
     all_counter = 0
 
     if not os.path.exists(meta_file):
@@ -105,29 +105,40 @@ def main():
         return
 
     read_iter = iter(jsonlines.open(meta_file))
-    while True:
-        if t_counter < max_processes:
-            try:
-                obj = next(read_iter)
-                if obj['id'] in done_set:
-                    print(obj['id'], 'pass')
-                    continue
-            except StopIteration:
-                print('StopIteration')
-                logging.info(f"所有原信息全部遍历完成。")
-                break
-        
-            th = threading.Thread(target=worker, args=(obj,))
-            th.start()
-            t_counter += 1
-            all_counter += 1
-            # if all_counter >= 100:          #########
-            #     print('all_counter >= 100') #######  测试用
-            #     break                       #########
-            if all_counter % log_interval == 0:
-                print(time.strftime('%Y-%m-%d %H:%M:%S'), '已获取', all_counter, '篇论文。')
-                logging.info(f"已获取{all_counter}篇论文。")
-        
+    
+    for obj in read_iter:
+        if obj['id'] in done_set:
+            print(obj['id'], 'pass')
+            continue
+        worker(obj)
+        all_counter += 1 
+        if all_counter % log_interval == 0:
+            print(time.strftime('%Y-%m-%d %H:%M:%S'), '已获取', all_counter, '篇论文。')
+            logging.info(f"已获取{all_counter}篇论文。")
+
+    # while True:
+    #     if t_counter < max_processes:
+    #         try:
+    #             obj = next(read_iter)
+    #             if obj['id'] in done_set:
+    #                 print(obj['id'], 'pass')
+    #                 continue
+    #         except StopIteration:
+    #             print('StopIteration')
+    #             logging.info(f"所有元信息全部遍历完成。")
+    #             break
+    #     
+    #         th = threading.Thread(target=worker, args=(obj,))
+    #         th.start()
+    #         t_counter += 1
+    #         all_counter += 1
+    #         # if all_counter >= 100:          #########
+    #         #     print('all_counter >= 100') #######  测试用
+    #         #     break                       #########
+    #         if all_counter % log_interval == 0:
+    #             print(time.strftime('%Y-%m-%d %H:%M:%S'), '已获取', all_counter, '篇论文。')
+    #             logging.info(f"已获取{all_counter}篇论文。")
+    #     
 
 if __name__ == '__main__':
     log_file = 'spider_log.jsonl'                    # 记录爬取信息的文件路径
