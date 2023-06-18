@@ -13,7 +13,7 @@ def crawl(url, headers=None):
     for i in range(retry_times):
         if resp.status_code == 200: break
         resp = requests.get(url, timeout=30)
-    # time.sleep(2)   # 如果爬太快被反爬，就把这一行的注释去掉
+    time.sleep(2)   # 如果爬太快被反爬，就把这一行的注释去掉
     return resp
 
 def download_files(j, out_folder=None):
@@ -144,7 +144,6 @@ def main():
 if __name__ == '__main__':
     log_file = 'spider_log.jsonl'                    # 记录爬取信息的文件路径
     error_log_file = './error_log.log'               # 记录爬取过程异常信息的文件路径
-    max_processes = 5                                # 最大线程数
     meta_file = './arxiv-metadata-oai-snapshot.json' # 存储arxiv论文元信息的文件地址
     retry_times = 3                                  # 对同一个url最多重试次数
     log_interval = 10                                # 间隔多少篇文章打印一次信息
