@@ -38,6 +38,12 @@ Arxiv Paper Downloader
 pip install os time loguru traceback requests random jsonlines tqdm concurrent.futures datetime argparse itertools fake_useragent
 ```
 
+!!!注意!!!
+
+你需要访问[Kaggle](https://www.kaggle.com/datasets/Cornell-University/arxiv)中下载json文件用以替换 arxiv-metadata-oai-snapshot.json。
+
+因为我们提供的json文件是一个subset，只包含了200条。
+
 然后，你可以运行`python main.py`来启动脚本。你可以使用命令行参数来配置脚本的行为。以下是可用的命令行参数：
 
 - `--meta_file`: 存储arxiv论文元信息的文件地址，默认为`./arxiv-metadata-oai-snapshot.json`
