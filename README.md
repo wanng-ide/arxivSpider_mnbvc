@@ -42,6 +42,8 @@ pip install os time loguru traceback requests random jsonlines tqdm concurrent.f
 
 你需要访问[Kaggle](https://www.kaggle.com/datasets/Cornell-University/arxiv)中下载json文件用以替换 arxiv-metadata-oai-snapshot.json。
 
+https://www.kaggle.com/datasets/Cornell-University/arxiv
+
 因为我们提供的json文件是一个subset，只包含了200条。
 
 然后，你可以运行`python main.py`来启动脚本。你可以使用命令行参数来配置脚本的行为。以下是可用的命令行参数：
