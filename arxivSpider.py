@@ -13,6 +13,7 @@ import itertools
 from fake_useragent import UserAgent
 from concurrent.futures import as_completed
 from bs4 import BeautifulSoup
+import copy
 
 # 创建一个用户代理池
 ua = UserAgent()
@@ -21,7 +22,7 @@ ua = UserAgent()
 session = requests.Session()
 
 # 创建一个URL列表
-url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv.org/']
+url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv.org/', 'https://arxiv.org/']
 # 'http://de.arxiv.org/'
 
 def get_pdf_link(url):
@@ -31,22 +32,33 @@ def get_pdf_link(url):
         soup = BeautifulSoup(response.text, 'html.parser')
 
         # 在arXiv网站中，PDF链接通常在"Download"部分下的"PDF"链接
-        pdf_link = soup.find('a', string='PDF')['href']
+        pdf_links = soup.find_all('a', string=['PDF only', 'PDF'])
 
         # 获取输入URL的前缀，然后将其添加到PDF链接前面
         url_prefix = url.split('/abs')[0]
-        pdf_url = url_prefix + pdf_link
 
-        return pdf_url
+        for link in pdf_links:
+            if link.text == 'PDF only':
+                return url_prefix + link['href']
+            elif link.text == 'PDF':
+                return url_prefix + link['href']
+
+        return None
     except Exception as e:
         logger.error(f"Error in get_pdf_link: {e}, URL: {url}")
         return None
-
+    
 def crawl(pid, file_type, headers=None):
     headers = {'User-Agent': ua.random}
     # 根据file_type构造URL的后缀
     url_suffix = 'e-print/' if file_type == 'source' else 'abs/'
-    for base_url in url_list:
+    
+    url_list_copy = copy.copy(url_list)
+    # 打乱URL列表顺序
+    random.shuffle(url_list_copy)
+    
+    while url_list_copy:
+        base_url = url_list_copy.pop()  # 从列表中获取并移除一个URL
         try:
             # 构造URL
             url = base_url + url_suffix + pid
@@ -56,22 +68,26 @@ def crawl(pid, file_type, headers=None):
                 if pdf_url is None:
                     continue
                 resp = session.get(pdf_url, timeout=30)
+                time.sleep(2)  # 如果爬太快被反爬，就把这一行的注释去掉
             else:
                 resp = session.get(url, timeout=30)
+                time.sleep(2)  # 如果爬太快被反爬，就把这一行的注释去掉
             for i in range(retry_times):
-                if resp.status_code == 200: break
+                if resp.status_code == 200:
+                    break
                 resp = session.get(url, headers=headers, timeout=30)
-                time.sleep(4) # 如果爬太快被反爬，就把这一行的注释去掉
+                time.sleep(4)  # 如果爬太快被反爬，就把这一行的注释去掉
             return resp
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Connection error: {e}, URL: {url}")
             # 如果我们已经尝试了所有的URL，那么我们返回None
-            if base_url == url_list[-1]:
+            if not url_list:
                 return None
             # 否则，我们继续下一个URL
             continue
-        
+    
     return None
+
 
 def download_files(j, out_folder):
     global done_set
@@ -80,9 +96,6 @@ def download_files(j, out_folder):
         return
     if out_folder is None:
         out_folder = "download"
-    # source_url = 'https://arxiv.org/e-print/' + pid
-    # pdf_url = 'https://arxiv.org/pdf/' + pid
-    # page_url = 'https://arxiv.org/abs/' + pid
     
     # # 随机选择一个URL
     # base_url = random.choice(url_list)
