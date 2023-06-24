@@ -20,7 +20,7 @@ ua = UserAgent()
 session = requests.Session()
 
 # 创建一个URL列表
-url_list = ['http://export.arxiv.org/', 'http://xxx.itp.ac.cn/']
+url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/']
 
 def crawl(url, headers=None):
     headers = {'User-Agent': ua.random}
