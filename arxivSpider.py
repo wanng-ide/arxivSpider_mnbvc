@@ -27,6 +27,7 @@ url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv
 
 def get_pdf_link(url):
     headers = {'User-Agent': ua.random}
+    has_source = True
     try:
         response = requests.get(url, headers=headers)
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -39,17 +40,20 @@ def get_pdf_link(url):
 
         for link in pdf_links:
             if link.text == 'PDF only':
-                return url_prefix + link['href']
+                has_source = False
+                return url_prefix + link['href'], has_source
             elif link.text == 'PDF':
-                return url_prefix + link['href']
+                return url_prefix + link['href'], has_source
 
-        return None
+        return None, has_source
     except Exception as e:
         logger.error(f"Error in get_pdf_link: {e}, URL: {url}")
-        return None
+        return None, has_source
     
 def crawl(pid, file_type, headers=None):
     headers = {'User-Agent': ua.random}
+    has_source = True  # 初始化has_source为True
+    
     # 根据file_type构造URL的后缀
     url_suffix = 'e-print/' if file_type == 'source' else 'abs/'
     
@@ -64,7 +68,7 @@ def crawl(pid, file_type, headers=None):
             url = base_url + url_suffix + pid
             # 如果我们正在下载PDF文件，我们需要使用get_pdf_link函数获取URL
             if file_type == 'pdf':
-                pdf_url = get_pdf_link(url)
+                pdf_url, has_source = get_pdf_link(url)
                 if pdf_url is None:
                     continue
                 resp = session.get(pdf_url, timeout=30)
@@ -77,7 +81,7 @@ def crawl(pid, file_type, headers=None):
                     break
                 resp = session.get(url, headers=headers, timeout=30)
                 time.sleep(4)  # 如果爬太快被反爬，就把这一行的注释去掉
-            return resp
+            return resp, has_source  # 注意，这里我们返回两个值
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Connection error: {e}, URL: {url}")
             # 如果我们已经尝试了所有的URL，那么我们返回None
@@ -120,15 +124,17 @@ def download_files(j, out_folder):
         return
     
     # 下载pdf文件
-    # logger.info(f'Downloading PDF file {pid}')
-    pdf_resp = crawl(pid, 'pdf')
+    pdf_resp, has_source = crawl(pid, 'pdf')
     pdf_status = pdf_resp.status_code if pdf_resp else None
-    # pdf_status = pdf_resp.status_code
+    
     # 下载source文件
-    # logger.info(f'Downloading source file {pid}')
-    source_resp = crawl(pid, 'source')
-    # source_status = source_resp.status_code
-    source_status = source_resp.status_code if source_resp else None
+    source_resp = None
+    source_status = None
+    if has_source:  # 如果存在源文件，我们才下载源文件
+        source_resp, _ = crawl(pid, 'source') 
+        source_status = source_resp.status_code if source_resp else None
+    else:
+        logger.info(f"No source file for paper {pid}")
     
     # 保存文件
     if pdf_status == 200:
@@ -144,7 +150,7 @@ def download_files(j, out_folder):
         source_url = source_resp.url  # 记录下载的源文件的URL
         with open(source_out_path, 'wb')as wb: wb.write(source_resp.content)
         logger.info(f"Successfully downloaded source file {pid}")
-    else: 
+    elif source_status is not None:
         source_out_path = ""
         logger.error(f"Failed to download source file {pid}")
 
@@ -203,14 +209,6 @@ def main():
             all_counter += 1 
             if all_counter % log_interval == 0:
                 logger.info(f'已获取{all_counter}篇论文。')
-        # for obj in tqdm(read_iter, ncols=100):
-        #     if obj['id'] in done_set:
-        #         logger.info(f"{obj['id']} pass")
-        #         continue
-        #     executor.submit(worker, obj, out_folder)  # 提交任务到线程池
-        #     all_counter += 1 
-        #     if all_counter % log_interval == 0:
-        #         logger.info(f'已获取{all_counter}篇论文。')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -227,7 +225,7 @@ if __name__ == '__main__':
         os.makedirs(log_dir)
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     
-    log_file = f'./{log_dir}/spider_log.jsonl'  
+    log_file = f'./{log_dir}/spider_log_cleaned0624.jsonl'  
     # log_file = f'./{log_dir}/spider_log_{timestamp}.jsonl'  
     error_log_file = f'./{log_dir}/error_log_{timestamp}.log'  
     
