@@ -10,13 +10,13 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import argparse
 import itertools
-from fake_useragent import UserAgent
+# from fake_useragent import UserAgent
 from concurrent.futures import as_completed
 from bs4 import BeautifulSoup
 import copy
 
 # 创建一个用户代理池
-ua = UserAgent()
+# ua = UserAgent()
 
 # 创建一个Session对象
 session = requests.Session()
@@ -25,7 +25,7 @@ session = requests.Session()
 url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv.org/', 'https://arxiv.org/']
 
 def get_pdf_link(url):
-    headers = {'User-Agent': ua.random}
+    headers = {'User-Agent': 'Lynx/2.8.8dev.3 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/3.6.16'}
     has_source = True
     try:
         response = requests.get(url, headers=headers)
@@ -50,7 +50,7 @@ def get_pdf_link(url):
         return None, has_source
     
 def crawl(pid, file_type, headers=None):
-    headers = {'User-Agent': ua.random}
+    headers = {'User-Agent': 'Lynx/2.8.8dev.3 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/3.6.16'}
     has_source = True  # 初始化has_source为True
     
     # 根据file_type构造URL的后缀
