@@ -121,12 +121,13 @@ def download_files(j, out_folder):
     pdf_resp, has_source = crawl(pid, 'pdf') 
     pdf_status = pdf_resp.status_code if pdf_resp else None
     # 下载source文件
-    source_status = None
     source_resp = None
-    if has_source:
-        source_resp = crawl(pid, 'source')
-        # source_status = source_resp.status_code
+    source_status = None
+    if has_source:  # 如果存在源文件，我们才下载源文件
+        source_resp, _ = crawl(pid, 'source') 
         source_status = source_resp.status_code if source_resp else None
+    else:
+        logger.info(f"No source file for paper {pid}")
     
     if pdf_status == 200:
         os.makedirs(pdf_out_folder, exist_ok=True)
@@ -141,7 +142,7 @@ def download_files(j, out_folder):
         source_url = source_resp.url  # 记录下载的源文件的URL
         with open(source_out_path, 'wb')as wb: wb.write(source_resp.content)
         logger.info(f"Successfully downloaded source file {pid}")
-    else: 
+    elif source_status is not None:
         source_out_path = ""
         logger.error(f"Failed to download source file {pid}")
 
