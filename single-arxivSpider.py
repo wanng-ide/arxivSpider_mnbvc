@@ -22,7 +22,7 @@ import copy
 session = requests.Session()
 
 # 创建一个URL列表
-url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv.org/', 'https://arxiv.org/']
+url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv.org/', 'https://arxiv.org/', 'http://xxx.itp.ac.cn/']
 
 def get_pdf_link(url):
     headers = {'User-Agent': 'Lynx/2.8.8dev.3 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/3.6.16'}
@@ -71,15 +71,13 @@ def crawl(pid, file_type, headers=None):
                 if pdf_url is None:
                     continue
                 resp = session.get(pdf_url, timeout=30)
-                time.sleep(2)  # 如果爬太快被反爬，就把这一行的注释去掉
             else:
                 resp = session.get(url, timeout=30)
-                time.sleep(2)  # 如果爬太快被反爬，就把这一行的注释去掉
             for i in range(retry_times):
                 if resp.status_code == 200:
                     break
                 resp = session.get(url, headers=headers, timeout=30)
-                time.sleep(4)  # 如果爬太快被反爬，就把这一行的注释去掉
+                # time.sleep(2)  # 如果爬太快被反爬，就把这一行的注释去掉
             return resp, has_source
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Connection error: {e}, URL: {url}")
