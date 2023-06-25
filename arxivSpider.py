@@ -29,7 +29,7 @@ def get_pdf_link(url):
     headers = {'User-Agent': ua.random}
     has_source = True
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
 
         # 在arXiv网站中，PDF链接通常在"Download"部分下的"PDF"链接
@@ -86,11 +86,11 @@ def crawl(pid, file_type, headers=None):
             logger.error(f"Connection error: {e}, URL: {url}")
             # 如果我们已经尝试了所有的URL，那么我们返回None
             if not url_list:
-                return None
+                return None, False
             # 否则，我们继续下一个URL
             continue
     
-    return None
+    return None, False
 
 
 def download_files(j, out_folder):
