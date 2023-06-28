@@ -22,8 +22,12 @@ ua = UserAgent()
 session = requests.Session()
 
 # 创建一个URL列表
+# <<<<<<< main
 url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv.org/', 'https://arxiv.org/', 'http://xxx.itp.ac.cn/']
 # 'http://de.arxiv.org/'
+# =======
+# url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/']
+# >>>>>>> main
 
 def get_pdf_link(url):
     headers = {'User-Agent': ua.random}
