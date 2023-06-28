@@ -10,27 +10,22 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import argparse
 import itertools
-from fake_useragent import UserAgent
+# from fake_useragent import UserAgent
 from concurrent.futures import as_completed
 from bs4 import BeautifulSoup
 import copy
 
 # 创建一个用户代理池
-ua = UserAgent()
+# ua = UserAgent()
 
 # 创建一个Session对象
 session = requests.Session()
 
 # 创建一个URL列表
-# <<<<<<< main
 url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv.org/', 'https://arxiv.org/', 'http://xxx.itp.ac.cn/']
-# 'http://de.arxiv.org/'
-# =======
-# url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/']
-# >>>>>>> main
 
 def get_pdf_link(url):
-    headers = {'User-Agent': ua.random}
+    headers = {'User-Agent': 'Lynx/2.8.8dev.3 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/3.6.16'}
     has_source = True
     try:
         response = requests.get(url, headers=headers, timeout=10)
@@ -55,7 +50,7 @@ def get_pdf_link(url):
         return None, has_source
     
 def crawl(pid, file_type, headers=None):
-    headers = {'User-Agent': ua.random}
+    headers = {'User-Agent': 'Lynx/2.8.8dev.3 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/3.6.16'}
     has_source = True  # 初始化has_source为True
     
     # 根据file_type构造URL的后缀
@@ -83,7 +78,7 @@ def crawl(pid, file_type, headers=None):
                     break
                 resp = session.get(url, headers=headers, timeout=30)
                 # time.sleep(2)  # 如果爬太快被反爬，就把这一行的注释去掉
-            return resp, has_source  # 注意，这里我们返回两个值
+            return resp, has_source
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Connection error: {e}, URL: {url}")
             # 如果我们已经尝试了所有的URL，那么我们返回None
@@ -103,11 +98,6 @@ def download_files(j, out_folder):
     if out_folder is None:
         out_folder = "download"
     
-    # # 随机选择一个URL
-    # base_url = random.choice(url_list)
-    # source_url = base_url + 'e-print/' + pid
-    # page_url = base_url + 'abs/' + pid
-    # pdf_url = get_pdf_link(page_url)
     pdf_url = None
     source_url = None
     
@@ -126,9 +116,8 @@ def download_files(j, out_folder):
         return
     
     # 下载pdf文件
-    pdf_resp, has_source = crawl(pid, 'pdf')
+    pdf_resp, has_source = crawl(pid, 'pdf') 
     pdf_status = pdf_resp.status_code if pdf_resp else None
-    
     # 下载source文件
     source_resp = None
     source_status = None
@@ -138,7 +127,6 @@ def download_files(j, out_folder):
     else:
         logger.info(f"No source file for paper {pid}")
     
-    # 保存文件
     if pdf_status == 200:
         os.makedirs(pdf_out_folder, exist_ok=True)
         pdf_url = pdf_resp.url  # 记录下载的PDF文件的URL
@@ -200,14 +188,16 @@ def main():
         # 只读取前100个元数据，调试用
         read_iter = itertools.islice(read_iter, max_files)
     
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:  
-        # 创建一个线程池，最大线程数为max_workers
-        futures = set()
-        for obj in tqdm(read_iter, ncols=100, desc='提交进度'):
-            if obj['id'] not in done_set:
-                future = executor.submit(worker, obj, out_folder)
-                futures.add(future)
-        for future in tqdm(as_completed(futures), total=len(futures), ncols=100, desc='完成进度'):
+    for obj in tqdm(read_iter, ncols=100, desc='完成进度'):
+        if obj['id'] not in done_set:
+            try:
+                worker(obj, out_folder)
+            except ConnectionResetError:
+                logger.error(f"Connection reset error: {obj['id']}")
+            except requests.exceptions.ProxyError:
+                logger.error(f"Requests proxy error: {obj['id']}")
+            except Exception as e:
+                logger.error(f"Other exception: {obj['id']}\n\t{e}\n\t{traceback.format_exc()}")
             all_counter += 1 
             if all_counter % log_interval == 0:
                 logger.info(f'已获取{all_counter}篇论文。')
@@ -217,7 +207,6 @@ if __name__ == '__main__':
     parser.add_argument('--meta_file', default='./arxiv-metadata-oai-snapshot.json', help='存储arxiv论文元信息的文件地址')
     parser.add_argument('--retry_times', type=int, default=3, help='对同一个url最多重试次数')
     parser.add_argument('--log_interval', type=int, default=10, help='间隔多少篇文章打印一次信息')
-    parser.add_argument('--max_workers', type=int, default=5, help='线程数量')
     parser.add_argument('--max_files', type=int, default=100, help='调试用，最大论文爬取数量，设置为0时，则全部爬取。')
     parser.add_argument('--out_folder', default='./download', help='下载的文件夹位置')
     args = parser.parse_args()
@@ -227,14 +216,13 @@ if __name__ == '__main__':
         os.makedirs(log_dir)
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     
-    log_file = f'./{log_dir}/spider_log_cleaned0624.jsonl'  
+    log_file = f'./{log_dir}/spider_log.jsonl'  
     # log_file = f'./{log_dir}/spider_log_{timestamp}.jsonl'  
     error_log_file = f'./{log_dir}/error_log_{timestamp}.log'  
     
     meta_file = args.meta_file  # 存储arxiv论文元信息的文件地址
     retry_times = args.retry_times  # 对同一个url最多重试次数
     log_interval = args.log_interval  # 间隔多少篇文章打印一次信息
-    max_workers = args.max_workers  # 线程数量
     max_files = args.max_files  # 调试用，最大论文爬取数量，设置为0时，则全部爬取。
     out_folder = args.out_folder  # 下载的文件夹位置
     
