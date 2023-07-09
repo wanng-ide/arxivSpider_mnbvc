@@ -18,7 +18,7 @@ import copy
 session = requests.Session()
 
 # 创建一个URL列表
-url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv.org/', 'https://arxiv.org/']
+url_list = ['http://cn.arxiv.org/', 'http://export.arxiv.org/', 'http://de.arxiv.org/', 'https://arxiv.org/', 'http://xxx.itp.ac.cn/']
 
 def get_pdf_link(url):
     headers = {'User-Agent': 'Lynx/2.8.8dev.3 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/3.6.16'}
