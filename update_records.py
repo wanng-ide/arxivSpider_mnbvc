@@ -42,6 +42,7 @@ def update_records(jsonl_file, updated_jsonl_file, main_folder):
 # 设置你的参数
 jsonl_file = './log/spider_log.jsonl'  # 将这里替换为你的jsonl文件名
 updated_jsonl_file = './log/spider_log_new.jsonl'  # 将这里替换为你希望的新文件名
+
 main_folder = './download'  # 将这里替换为你的主文件夹路径
 
 # 调用函数
